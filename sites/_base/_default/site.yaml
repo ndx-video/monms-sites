@@ -1,0 +1,19 @@
+slug: _default
+category: _base
+name: MonMS Default
+description: >-
+  Canonical bare scaffold matching monms init — base layout, homepage hero with
+  HTMX inline edit, hero_content schema, and operator config example.
+version: "0.1.0"
+monms:
+  minVersion: null
+preview:
+  imageUrl: https://cdn.ndx.video/monms-sites/_base/_default.png
+  siteUrl: null
+tags:
+  - default
+  - scaffold
+  - minimal
+author: NDX
+license: MIT
+default: true
