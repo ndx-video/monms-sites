@@ -1,1 +1,55 @@
+# Local dev workspace (monms serve testbeds)
 dev/
+
+# R6 — runtime artifacts (under any template root)
+**/.pb_data/
+**/.monms/config.json
+**/.monms/publish-state.json
+**/.monms/logs/
+**/content/
+
+# Python venv (gallery publish script)
+.venv/
+scripts/.venv/
+
+# Credentials
+.env
+.env.*
+!.env.example
+
+# R2 — binaries (text-only repo; gallery blobs are gitignored dev files — R10)
+*.png
+*.jpg
+*.jpeg
+sites/*/*/thumb.*
+sites/*/*/screen[0-9][0-9].*
+
+# Forbidden everywhere (RULES.md forbiddenExtensions + common blobs)
+*.woff
+*.woff2
+*.ttf
+*.otf
+*.eot
+*.webp
+*.gif
+*.ico
+*.avif
+*.pdf
+*.zip
+*.tar
+*.gz
+*.7z
+*.rar
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+*.dat
+*.db
+*.sqlite
+*.sqlite3
+
+# MonMS engine binary copied for local/docker runs (never commit)
+monms
+**/monms
