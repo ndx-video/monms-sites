@@ -1,0 +1,10 @@
+{
+  "collection": "hero_content",
+  "records": [
+    {
+      "id": "homepage",
+      "title": "Welcome to MonMS",
+      "body": "This headline and paragraph are stored in the hero_content collection. Sign in via Admin, then click here to edit in place — changes save when you click away."
+    }
+  ]
+}
