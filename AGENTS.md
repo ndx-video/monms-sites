@@ -2,131 +2,80 @@
 
 You are an autonomous agent working in **monms-sites** — the public template library for MonMS. You shape **site templates** (L2 structure), not the MonMS Go engine.
 
-MonMS lives in a sibling repository (`../MonMS/` on a typical dev machine). Load engine skills from there when editing template internals.
+MonMS lives in a sibling repository (`../MonMS/`). Engine integration spec: `../MonMS/specs/site-library.md`.
 
 ## Cold start
 
 Read in order:
 
 1. [README.md](README.md) — purpose and gallery status
-2. [RULES.md](RULES.md) — non-negotiable library contract
-3. [CONTRIBUTING.md](CONTRIBUTING.md) — PR workflow and checklist
-
-Then load MonMS skills from the engine repo as needed (see Skill routing below).
+2. [RULES.md](RULES.md) — official spec (frontmatter + body)
+3. [CONTRIBUTING.md](CONTRIBUTING.md) — PR workflow and publish script
 
 ## Your role
 
 | You do | You do not |
 |--------|------------|
-| Add or edit templates under `sites/<category>/<slug>/` | Edit `../MonMS/internal/*` or engine CLI |
-| Write `site.yaml` manifests | Commit `.pb_data/`, secrets, or binaries |
-| Run `monms validate` against template paths | Push editorial copy as if it were structure |
-| Follow text-only and remote-media rules | Invent repo layouts outside `sites/` |
-
-Templates are **L2 structure** in MonMS terminology: `templates/`, `schema/`, text `assets/`, optional `documents/` and `doctrees/`. Content records live in `.pb_data/` on operator instances — never in this repo.
+| Add or edit templates under `sites/<category>/<slug>/` | Edit `../MonMS/internal/*` unless implementing site-library spec |
+| Write `site.yaml` with `preview.thumbUrl` / `preview.screens` | Commit binaries or gallery image files |
+| Run `scripts/publish_gallery_assets.py` before PRs with gallery changes | Commit `.pb_data/`, secrets, or local `thumb.*` / `screenNN.*` |
+| Run `monms validate` against template paths | Invent repo layouts outside `sites/` |
 
 ## Repo map
 
 ```
 monms-sites/
-├── AGENTS.md              ← you are here (canonical agent entry)
-├── CLAUDE.md              ← thin pointer for Anthropic tooling
-├── RULES.md               ← hard library rules
-├── CONTRIBUTING.md        ← human + agent PR workflow
-├── README.md
+├── RULES.md               ← official spec (YAML frontmatter + rules)
+├── scripts/publish_gallery_assets.py
+├── .env.example           ← B2 credentials template (.env gitignored)
 └── sites/
-    ├── _base/
-    │   └── _default/      ← canonical default (monms init baseline)
-    └── <category>/
-        └── <slug>/        ← one MonMS site template + site.yaml
+    ├── _base/_default/    ← canonical default
+    └── <category>/<slug>/ ← template + site.yaml
 ```
 
-Every template requires `site.yaml`. See [RULES.md](RULES.md) R4 for the schema.
+Every gallery-ready template requires `preview.thumbUrl` in `site.yaml`. See [RULES.md](RULES.md) R4 and R10.
 
-**Default template:** `sites/_base/_default/` is the single source of truth for bare `monms init` scaffolding. When the engine embed changes (`../MonMS/internal/scaffold/embed/`), update `_default` here in the same PR cycle. Only `_default` may set `default: true` in `site.yaml`.
+**Default template:** `sites/_base/_default/` mirrors `monms init` (`../MonMS/internal/scaffold/embed/`). Only `_default` may set `default: true`.
 
 ## Hard boundaries
 
-These apply on every task. Details and rationale are in [RULES.md](RULES.md).
-
-1. **No binaries** — text files only across the entire template tree (R2).
-2. **Remote media** — all imagery via HTTPS URLs; no committed images or fonts (R3).
-3. **No runtime artifacts** — never commit `.pb_data/`, `.monms/config.json`, `.monms/publish-state.json`, `content/`, logs, or secrets (R6).
-4. **Validate before PR** — `monms validate -s sites/<category>/<slug>` must pass.
-5. **One template focus** — prefer one `sites/<category>/<slug>/` per PR; no drive-by refactors across categories.
-
-### MonMS binary for validation
+1. **Text-only in Git** — no committed binaries (R2).
+2. **Gallery via B2** — local `thumb.*` / `screenNN.*` at site root are gitignored; publish script uploads and patches yaml (R10).
+3. **Editorial media** — remote HTTPS in templates/schema (R3b).
+4. **No runtime artifacts** — never commit `.pb_data/`, `.monms/config.json`, `content/`, secrets (R6).
+5. **Validate before PR** — `monms validate -s sites/<category>/<slug>`.
 
 ```bash
-# Typical local layout (sibling repos)
 export MONMS_BIN=../MonMS/monms
 monms validate -s sites/<category>/<slug>
 ```
 
-Build the engine first if needed: `cd ../MonMS && go build -o monms .`
+## Gallery publish (contributors)
 
-## Gallery and migration context (future)
+```bash
+cp .env.example .env   # fill once
+pip install -r scripts/requirements.txt
+python scripts/publish_gallery_assets.py --site sites/<category>/<slug>
+```
 
-The MonMS dashboard **site library / gallery** is not built yet. Do not invent incompatible install paths or manifest formats — follow this repo's layout so the gallery can consume it later.
-
-### Expected operator flows
-
-| Scenario | Expected approach |
-|----------|-------------------|
-| **New site from template** | `monms init --from-gallery <category>/<slug>` (engine TBD) or copy/sparse-checkout from `sites/<category>/<slug>/` into operator site Git repo |
-| **Switch template** | Sparse-checkout a different `sites/<category>/<slug>/` into a sibling folder; re-point `monms serve -s <new-path>`; agent migrates schema/template deltas |
-| **Deploy shape** | Operator tags their site Git repo; `monms site sync --ref TAG` on staging/production (MonMS operator rail) |
-
-Breaking changes to templates are allowed while MonMS is pre-RC. Bump `site.yaml` `version` and document migration notes in PRs.
-
-This library repo is **not** the operator's site Git checkout. Templates are copied or checked out **into** a separate repo that MonMS serves.
+Use `--dry-run` to preview without uploading or writing yaml.
 
 ## Skill routing
 
-Skills for MonMS engine and site shaping live in the **MonMS** repo, not here. Read skill frontmatter first; load full files only when relevant.
-
-| Task | Load from `../MonMS/.cursor/skills/` |
-|------|--------------------------------------|
-| Any MonMS terminology or layers | `monms-architecture/SKILL.md` |
-| Templates, schema, HTMX, validate | `monms-site-shaping/SKILL.md` |
-| Markdown / doctrees | `monms-doctree/SKILL.md` |
-| Docker, site sync, config.json | `monms-operators-deploy/SKILL.md` |
-
-Stay in this repo's docs (`RULES.md`, `CONTRIBUTING.md`) for library-specific rules. Do not duplicate engine architecture in template PRs.
-
-This repo has no `.cursor/skills/` yet. Add monms-sites-specific skills here only when recurring patterns justify them.
-
-## Schema and template work
-
-When mutating template internals, follow MonMS site-shaping conventions:
-
-- **Schema dual-write:** PocketBase API + `schema/{name}.json` in the template (when a running server is available for API steps).
-- **Page templates:** `{{define "body"}}…{{end}}` only — shell in `templates/layouts/base.gohtml`.
-- **HTMX inline edit:** gate on `{{if .IsLoggedIn}}`; use `hx-swap="none"` and `hx-ext="json-enc"`.
-- **Editorial flag:** `"editorial": true` on collections clients publish.
-
-Full checklists: `../MonMS/.cursor/skills/monms-site-shaping/SKILL.md` and `../MonMS/docs/operators/shaping-and-agents.md`.
+Load from `../MonMS/.cursor/skills/` when editing template internals (`monms-site-shaping`, `monms-architecture`). Library rules stay in this repo's `RULES.md`.
 
 ## PR hygiene
 
-- Match path `sites/<category>/<slug>/` per [RULES.md](RULES.md) R1.
-- Include or update `site.yaml`; bump `version` on meaningful changes.
-- Confirm no binary files before opening PR.
-- Run `monms validate` and report result in PR description.
-- Propose new categories with rationale (R8).
+- Match `sites/<category>/<slug>/`
+- `preview.thumbUrl` set; no `preview.imageUrl`
+- No committed image files
+- Run publish script when gallery assets change
+- Bump `site.yaml` `version` on meaningful changes
 
-## Universal boundaries (MonMS-aligned)
-
-- Self-hosted, sovereign infrastructure over managed cloud defaults.
-- Never hardcode secrets.
-- Use `vi` for terminal file edits — not `nano`.
-
-## Related MonMS docs
+## Related
 
 | Topic | Location |
 |-------|----------|
-| Cold start / commands | `../MonMS/PROJECT.md` |
-| Four layers & promotion rails | `../MonMS/.cursor/skills/monms-architecture/SKILL.md` |
-| Template routing & validation | `../MonMS/docs/operators/shaping-and-agents.md` |
+| Engine site-library spec | `../MonMS/specs/site-library.md` |
+| Template shaping | `../MonMS/.cursor/skills/monms-site-shaping/SKILL.md` |
 | Media URLs at runtime | `../MonMS/docs/user-guide/media-urls.md` |
-| `monms site sync` | `../MonMS/docs/reference/cli.md` |

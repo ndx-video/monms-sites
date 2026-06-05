@@ -1,143 +1,92 @@
 # Contributing to monms-sites
 
-Thank you for helping build the MonMS Site Library. This repo is public and [MIT licensed](LICENSE). Contributions must follow [RULES.md](RULES.md) — reviewers treat that file as the merge contract.
+Contributions must follow [RULES.md](RULES.md). AI agents: [AGENTS.md](AGENTS.md).
 
-AI agents should also read [AGENTS.md](AGENTS.md).
+MonMS engine: [https://github.com/ndx-video/monms](https://github.com/ndx-video/monms) — integration spec: [../MonMS/specs/site-library.md](../MonMS/specs/site-library.md).
 
 ## Before you start
 
-1. **Fork** this repository on GitHub.
-2. **Clone** your fork and add the upstream remote if you plan to sync often.
-3. **Build MonMS** from the engine repository (sibling checkout `../MonMS/` is typical):
+1. Fork and clone this repository.
+2. Build MonMS from `../MonMS/`:
 
    ```bash
-   cd ../MonMS
-   go build -o monms .
+   cd ../MonMS && go build -o monms .
    export MONMS_BIN="$(pwd)/monms"
    ```
 
-4. Read [RULES.md](RULES.md) in full — especially text-only artifacts (R2), remote media (R3), and `site.yaml` (R4).
+3. Read [RULES.md](RULES.md) — especially R2 (text-only Git), R4 (`site.yaml`), R10 (gallery publish).
+
+## Gallery assets
+
+Gallery images are **not** committed. Workflow:
+
+1. Add `thumb.png` (640×360) at `sites/<category>/<slug>/thumb.png` (gitignored).
+2. Optionally add `screen01.png`, `screen02.png`, … at the same level.
+3. Copy [.env.example](.env.example) to `.env` and fill Backblaze B2 credentials.
+4. Install script dependencies (venv recommended):
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r scripts/requirements.txt
+   ```
+
+5. Publish and patch `site.yaml`:
+
+   ```bash
+   python scripts/publish_gallery_assets.py --site sites/<category>/<slug>
+   ```
+
+   Use `--dry-run` to preview uploads and URL changes without writing.
+
+6. Commit only `site.yaml` (with `preview.thumbUrl` and optional `preview.screens`) — not the image files.
+
+Remote URL shape: `{B2_PUBLIC_BASE_URL}/{category}/{slug}/{filename}`
 
 ## Adding a new template
 
-1. **Pick a category** from the allowlist in [RULES.md](RULES.md) R8, or propose a new one with rationale in your PR.
+1. Pick a category from [RULES.md](RULES.md) R8 or propose a new one in your PR.
 
-2. **Create the directory:**
-
-   ```
-   sites/<category>/<slug>/
-   ```
-
-   Use lowercase kebab-case. `slug` must be unique across the entire repo.
-
-3. **Scaffold the MonMS site shape.** Start from `monms init` output in a temp directory, or hand-author the minimum required paths (R5):
+2. Create `sites/<category>/<slug>/` with minimum paths (R5):
 
    ```
+   site.yaml
    templates/layouts/base.gohtml
    templates/index.gohtml
    schema/
    .monms/config.example.json
    ```
 
-   For template conventions, see MonMS `docs/operators/shaping-and-agents.md` and `.cursor/skills/monms-site-shaping/SKILL.md`.
+3. Scaffold from `sites/_base/_default/` or `monms init` output.
 
-4. **Add `site.yaml`** at the template root. Fields and examples are in [RULES.md](RULES.md) R4. Ensure `slug` and `category` match directory names.
+4. Add gallery assets (workflow above).
 
-5. **Strip binaries.** No images, fonts, PDFs, or archives anywhere in the template. Replace local media references with remote HTTPS URLs.
-
-6. **Validate:**
+5. Validate:
 
    ```bash
-   export MONMS_BIN=../MonMS/monms   # adjust path as needed
    monms validate -s sites/<category>/<slug>
    ```
 
-7. **Open a pull request** against `main`. Describe the template purpose, category choice, and validation output. Use remote preview URLs only — do not attach binary screenshots to the PR; link `preview.imageUrl` or a hosted demo instead.
-
-Prefer **one new template per PR** when possible.
-
-### Changing the default scaffold
-
-`sites/_base/_default/` mirrors `monms init` in the MonMS engine (`internal/scaffold/embed/`). When you change `_default`:
-
-1. Diff against `../MonMS/internal/scaffold/embed/` and keep them aligned (or note intentional divergence in the PR).
-2. Bump `site.yaml` `version`.
-3. Validate all templates:
-
-   ```bash
-   cd sites/_base/_default
-   monms validate -s "$(pwd)" \
-     "$(pwd)/templates/index.gohtml" \
-     "$(pwd)/templates/layouts/base.gohtml" \
-     "$(pwd)/templates/doc.gohtml" \
-     "$(pwd)/templates/errors/errors.gohtml"
-   ```
-
-Only `_default` may set `default: true` in `site.yaml`.
-
-## Updating an existing template
-
-1. Bump `version` in `site.yaml` per [RULES.md](RULES.md) R9.
-2. Note breaking changes in the PR description (removed pages, renamed collections, routing changes).
-3. Re-run `monms validate -s sites/<category>/<slug>`.
-4. Keep changes scoped to that template unless a cross-cutting rule change requires repo-wide updates.
+6. Open a PR — one template per PR when possible.
 
 ## PR checklist
 
-Copy into your PR description and check each item:
-
-- [ ] Path is `sites/<category>/<slug>/` with kebab-case names
-- [ ] `site.yaml` present; `slug` and `category` match directories
-- [ ] `site.yaml` `version` bumped for this change
-- [ ] No binary files anywhere in the template
-- [ ] `preview.imageUrl` is a remote HTTPS URL
-- [ ] `monms validate -s sites/<category>/<slug>` passes (paste command output or note `MONMS_BIN` used)
-- [ ] No `.pb_data/`, `.monms/config.json`, `content/`, secrets, or runtime logs
-- [ ] Placeholder copy is generic and appropriately licensed
-- [ ] New category (if any) justified in PR description
-
-## Review
-
-Maintainers: **NDX** (initial stewardship).
-
-Reviews focus on:
-
-- [RULES.md](RULES.md) compliance
-- Template quality and MonMS idioms (layout pattern, schema shape, HTMX if used)
-- Whether the template fills a distinct gallery niche
-
-## Local development tips
-
-```bash
-# Validate from repo root
-export MONMS_BIN=../MonMS/monms
-monms validate -s sites/<category>/<slug>
-
-# Optional: serve the template directly for manual testing
-monms serve -s sites/<category>/<slug> --http=127.0.0.1:8090
-```
-
-Serving creates `.pb_data/` locally — never commit it.
-
-### Checking for accidental binaries
-
-```bash
-# From repo root — inspect suspicious files before PR
-find sites/<category>/<slug> -type f ! -name '*.gohtml' ! -name '*.json' \
-  ! -name '*.yaml' ! -name '*.yml' ! -name '*.md' ! -name '*.css' \
-  ! -name '*.scss' ! -name '*.svg' -print
-```
-
-Future CI may automate binary scanning and `monms validate` across all templates.
+- [ ] Path is `sites/<category>/<slug>/`
+- [ ] `site.yaml`: `slug`/`category` match directories; `preview.thumbUrl` is HTTPS
+- [ ] No `preview.imageUrl` (legacy)
+- [ ] No committed binary files (`thumb.*`, `screenNN.*`, images, fonts)
+- [ ] Publish script run if gallery assets changed
+- [ ] `monms validate` passes
+- [ ] No `.pb_data/`, secrets, or runtime logs
+- [ ] `version` bumped in `site.yaml` for this change
 
 ## What we do not merge
 
-- Binary assets (images, fonts, archives) — [RULES.md](RULES.md) R2
+- Committed image or binary files — R2
+- Missing `preview.thumbUrl` on gallery-ready templates — R4
+- `preview.imageUrl` — legacy
 - Templates outside `sites/<category>/<slug>/` — R1
-- Missing or invalid `site.yaml` — R4
-- Secrets, production config, or `.pb_data/` — R6
-- Engine changes (belong in the MonMS repository)
 
 ## Questions
 
-Open a GitHub issue for category proposals, manifest schema changes, or gallery integration questions. Engine feature work (dashboard gallery, `monms init --from-gallery`) belongs in the MonMS repository.
+Open a GitHub issue for spec changes. Engine gallery implementation: MonMS repo (`specs/site-library.md`).
