@@ -22,7 +22,6 @@
     Live Editor Active
     <a href="/_monms/" class="editor-badge__link">Console</a>
     {{if .IsPublisher}}<a href="/_monms/publish" class="editor-badge__link">Publish to live</a>{{end}}
-    <a href="/_/" class="editor-badge__link">Full Admin Dashboard</a>
     <a href="/_monms/auth/logout?redirect=/" class="editor-badge__link" id="monms-sign-out">Sign out</a>
   </div>
   {{if .IsDev}}
@@ -64,86 +63,6 @@
     {{end}}
   </script>
   {{end}}
-  <script>
-    (function () {
-      function isPbAuthKey(key) {
-        return key && (key.indexOf('pocketbase_auth') === 0 || key.indexOf('__pb_superusers__') === 0);
-      }
-
-      function pbToken() {
-        try {
-          for (var i = 0; i < localStorage.length; i++) {
-            var key = localStorage.key(i);
-            if (!isPbAuthKey(key)) continue;
-            var parsed = JSON.parse(localStorage.getItem(key) || '{}');
-            if (parsed && parsed.token) return parsed.token;
-          }
-        } catch (e) {}
-        return '';
-      }
-
-      function clearPbLocal() {
-        try {
-          for (var i = localStorage.length - 1; i >= 0; i--) {
-            var key = localStorage.key(i);
-            if (isPbAuthKey(key)) localStorage.removeItem(key);
-          }
-        } catch (e) {}
-      }
-
-      function clearMonmsCookie(reload) {
-        return fetch('/_monms/auth/logout', { method: 'POST', credentials: 'same-origin' })
-          .then(function () {
-            if (reload) window.location.reload();
-          });
-      }
-
-      function doSignOut() {
-        clearPbLocal();
-        return clearMonmsCookie(true);
-      }
-
-      function syncFromPb() {
-        var token = pbToken();
-        if (!token) return Promise.resolve();
-        return fetch('/_monms/auth/sync', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Authorization': 'Bearer ' + token }
-        }).then(function (resp) {
-          if (resp.ok) window.location.reload();
-          else console.error('[MonMS] sync-auth failed:', resp.status);
-        });
-      }
-
-      if (document.querySelector('.editor-badge') && !pbToken()) {
-        clearMonmsCookie(true);
-        return;
-      }
-
-      if (!document.querySelector('.editor-badge') && pbToken()) {
-        syncFromPb();
-        return;
-      }
-
-      window.addEventListener('storage', function (event) {
-        if (!isPbAuthKey(event.key)) return;
-        if (!event.newValue) {
-          if (document.querySelector('.editor-badge')) clearMonmsCookie(true);
-          return;
-        }
-        if (!document.querySelector('.editor-badge')) syncFromPb();
-      });
-
-      var signOutEl = document.getElementById('monms-sign-out');
-      if (signOutEl) {
-        signOutEl.addEventListener('click', function (event) {
-          event.preventDefault();
-          doSignOut();
-        });
-      }
-    })();
-  </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 </body>
 </html>
