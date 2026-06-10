@@ -17,6 +17,7 @@ Each entry is a complete MonMS site directory:
 ```
 sites/<category>/<slug>/
 ├── site.yaml              # manifest — preview.thumbUrl, preview.screens
+├── DESIGN.md              # optional design contract (recommended in this repo)
 ├── thumb.*                # local dev only (gitignored) — publish to B2
 ├── screen01.*             # optional screenshots (gitignored)
 ├── templates/
@@ -36,6 +37,21 @@ sites/<category>/<slug>/
 ### Default template
 
 When MonMS initializes a site without a gallery choice, the shape comes from `sites/_base/_default/`. See [RULES.md](RULES.md) R1 and R8.
+
+### Operator overlay
+
+The [`.overlay/`](.overlay/) directory holds agent skills and cold-start docs copied into **operator site repos** when MonMS installs a template from the library. Overlay files are not part of gallery templates under `sites/`. See [RULES.md](RULES.md) R12.
+
+Installed operator sites receive:
+
+| File | Purpose |
+|------|---------|
+| `AGENTS.md` | Canonical agent entry (all platforms) |
+| `CLAUDE.md` | Anthropic pointer to AGENTS.md |
+| `.github/copilot-instructions.md` | Copilot pointer to AGENTS.md |
+| `.cursor/skills/` | Five site skills: operator, shaping, design, content, instance-trajectory |
+
+`monms-site-shaping` lives only in `.overlay/` — the MonMS engine repo does not duplicate it.
 
 ## Relationship to MonMS
 

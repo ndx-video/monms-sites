@@ -13,6 +13,8 @@ layout:
     - templates/index.gohtml
     - schema/
     - .monms/config.example.json
+  recommendedPaths:
+    - DESIGN.md
 gallery:
   localDevBasenames:
     - thumb
@@ -39,6 +41,9 @@ publish:
 validation:
   templates: monms validate
   librarySpec: pending
+overlay:
+  root: .overlay
+  copyOnInstall: true
 ---
 
 # RULES.md — MonMS Site Library specification
@@ -198,6 +203,7 @@ schema/
 ### Recommended (when used by the template)
 
 ```
+DESIGN.md                       # visual identity contract for agents (R11)
 templates/fragments/
 templates/errors/
 assets/                         # text-only per R2
@@ -331,11 +337,102 @@ Use `--dry-run` to preview uploads and YAML changes without writing.
 
 ---
 
+## R11 — Design contract (optional)
+
+Templates **may** include a `DESIGN.md` at the site root (`sites/<category>/<slug>/DESIGN.md`). This file gives coding agents a persistent, structured understanding of the template's visual identity.
+
+### Format
+
+Use the [DESIGN.md format](https://github.com/google-labs-code/design.md) (Apache-2.0). Canonical spec: upstream [`docs/spec.md`](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md) or `npx @google/design.md spec`.
+
+A DESIGN.md file has two layers:
+
+1. **YAML front matter** — machine-readable design tokens (`name`, `colors`, `typography`, `rounded`, `spacing`, optional `components`).
+2. **Markdown body** — human-readable rationale in canonical section order (Overview → Colors → Typography → Layout → …).
+
+The format is **alpha** — expect upstream schema changes. Link to the spec; do not fork it into this repo unless MonMS-specific extensions are needed.
+
+### Relationship to implementation
+
+| Artifact | Role |
+|----------|------|
+| `DESIGN.md` | Design contract — tokens and intent for agents |
+| `assets/main.css`, Tailwind classes in templates | Implementation |
+
+Drift between DESIGN.md and CSS is a **review concern**, not a validation error. Optionally lint with `npx @google/design.md lint DESIGN.md` (advisory only).
+
+### Validation
+
+- Absence of `DESIGN.md` does **not** fail `monms validate` or `monms library validate`.
+- `DESIGN.md` is listed under `layout.recommendedPaths` in this file's frontmatter — the library validator may warn when missing, but must not error.
+
+### Official catalog policy
+
+Every template merged into **this repository** should include `DESIGN.md` so the catalog leads by example. See [CONTRIBUTING.md](CONTRIBUTING.md). External forks or partial templates are not required to include one.
+
+---
+
+## R12 — Operator overlay (install-time injection)
+
+The `.overlay/` directory at the **monms-sites repo root** holds files copied into **operator site checkouts** when MonMS installs a template from the library. Overlay files are **not** part of gallery templates under `sites/`.
+
+### Layout
+
+```
+.overlay/
+├── AGENTS.md              # canonical agent cold start (all vendors)
+├── CLAUDE.md              # Anthropic pointer → AGENTS.md
+├── .github/
+│   └── copilot-instructions.md   # GitHub Copilot pointer → AGENTS.md
+└── .cursor/skills/        # Cursor skill discovery (SKILL.md per skill)
+    ├── monms-site-operator/
+    ├── monms-site-shaping/       # sole copy — not in MonMS engine repo
+    ├── monms-site-design/
+    ├── monms-site-content/
+    └── monms-instance-trajectory/
+```
+
+Gallery templates under `sites/` ship operator **artifacts** (`DEPLOY.md`, `trajectory.example.json`, `.github/workflows/`) — not `.cursor/skills/` (R12).
+
+### Cross-platform entry
+
+| File | Platform |
+|------|----------|
+| `AGENTS.md` | Canonical for Cursor, Anthropic, OpenAI/Codex, Copilot |
+| `CLAUDE.md` | Anthropic — pointer only |
+| `.github/copilot-instructions.md` | GitHub Copilot — pointer only |
+| `.cursor/skills/*/SKILL.md` | Cursor lazy-load via frontmatter |
+
+`AGENTS.md` is a routing index only; skill bodies live under `.cursor/skills/`.
+
+### Rules
+
+| Rule | Detail |
+|------|--------|
+| Location | Repo root only — never inside `sites/<category>/<slug>/` |
+| Text-only | R2 applies (`.md`, `.yaml`, etc.) |
+| Validation | **Excluded** from `monms validate` and `monms library validate` |
+| Install | MonMS `InstallTemplate` copies `.overlay/*` after the L2 template tree |
+| Embed init | Embed-only `monms init` (no library copy) does **not** receive overlay |
+| Customization | Operators own their installed copy; re-install skips existing files |
+
+### Maintenance
+
+| Who | Maintains |
+|-----|-----------|
+| monms-sites maintainers | `.overlay/` in this repo |
+| Operators | Installed copy in their site Git repo |
+| Template authors | `DESIGN.md`, templates under `sites/` only |
+
+---
+
 ## Quick reference
 
 ```
 sites/<category>/<slug>/     ← only valid template location
+.overlay/                    ← operator files; copied at install, not in templates
 site.yaml                    ← preview.thumbUrl + optional preview.screens
+DESIGN.md                    ← optional design contract (recommended in this repo)
 thumb.* / screenNN.*         ← local dev only (gitignored); publish to B2
 text-only in Git             ← no committed binaries
 remote HTTPS                 ← gallery + editorial imagery
