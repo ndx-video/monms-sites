@@ -1,0 +1,68 @@
+name: Shape deploy
+
+# Tag push triggers autonomous L2 shape sync on trajectory hosts at the tag frontier.
+# Requires MONMS_DEPLOY_TOKEN (shared) or per-host MONMS_DEPLOY_TOKEN_<HOST_ID> secrets.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy-shape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve deploy hosts from trajectory
+        id: hosts
+        run: |
+          set -euo pipefail
+          REF="${GITHUB_REF_NAME}"
+          if [[ ! -f .monms/trajectory.json ]]; then
+            echo "Missing .monms/trajectory.json — copy from trajectory.example.json" >&2
+            exit 1
+          fi
+          HOSTS="$(bash .github/scripts/resolve-shape-deploy-hosts.sh "${REF}" .monms/trajectory.json)"
+          if [[ "${HOSTS}" == "[]" ]]; then
+            echo "No hosts to deploy for tag ${REF}" >&2
+            exit 1
+          fi
+          echo "Deploy targets: ${HOSTS}"
+          echo "hosts=${HOSTS}" >> "${GITHUB_OUTPUT}"
+
+      - name: Deploy shape to each host
+        env:
+          HOSTS_JSON: ${{ steps.hosts.outputs.hosts }}
+          MONMS_DEPLOY_TOKEN: ${{ secrets.MONMS_DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${MONMS_DEPLOY_TOKEN}" ]]; then
+            echo "MONMS_DEPLOY_TOKEN secret is not set on this repository" >&2
+            exit 1
+          fi
+          COUNT="$(echo "${HOSTS_JSON}" | jq 'length')"
+          for i in $(seq 0 $((COUNT - 1))); do
+            host="$(echo "${HOSTS_JSON}" | jq -c ".[${i}]")"
+            ID="$(echo "${host}" | jq -r '.id')"
+            URL="$(echo "${host}" | jq -r '.siteUrl')"
+            TOKEN="${MONMS_DEPLOY_TOKEN}"
+            REF="${GITHUB_REF_NAME}"
+            echo "Deploying tag ${REF} to ${ID} at ${URL}"
+            HTTP_CODE="$(curl -sS -o /tmp/deploy-response.json -w '%{http_code}' -X POST "${URL}/api/monms/shape/deploy" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"ref\":\"${REF}\"}" \
+              --max-time 120)"
+            echo "Deploy API (${ID}): HTTP ${HTTP_CODE}"
+            cat /tmp/deploy-response.json
+            if [[ "${HTTP_CODE}" != "200" ]]; then
+              exit 1
+            fi
+            sleep 10
+            CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "${URL}/")"
+            echo "Health check (${ID}): HTTP ${CODE}"
+            if [[ "${CODE}" != "200" ]]; then
+              exit 1
+            fi
+          done

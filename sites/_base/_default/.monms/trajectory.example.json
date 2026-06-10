@@ -1,0 +1,47 @@
+{
+  "_comment": "Committed site trajectory — copy to trajectory.json and customize per project. Identical on every host; each host config.json declares its instance.id and instance.stageIndex.",
+  "version": 1,
+  "site": {
+    "slug": "example",
+    "displayName": "Example Site"
+  },
+  "tag": {
+    "prefix": "v",
+    "segments": 3
+  },
+  "stages": [
+    {
+      "index": 0,
+      "role": "development",
+      "label": "Development",
+      "shape": { "mode": "none" }
+    },
+    {
+      "index": 1,
+      "role": "staging",
+      "label": "Staging",
+      "shape": { "mode": "sequential", "tagSegment": 1 },
+      "content": { "publishesTo": 2 },
+      "hosts": [
+        {
+          "id": "staging-primary",
+          "siteUrl": "https://staging.example.com",
+          "deploy": { "method": "shapeDeployApi", "systemdUnit": "monms-example-staging" }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "role": "production",
+      "label": "Production",
+      "shape": { "mode": "parallel", "tagSegment": 2 },
+      "hosts": [
+        {
+          "id": "production-primary",
+          "siteUrl": "https://production.example.com",
+          "deploy": { "method": "shapeDeployApi", "systemdUnit": "monms-example" }
+        }
+      ]
+    }
+  ]
+}

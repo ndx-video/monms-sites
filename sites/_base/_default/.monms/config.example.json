@@ -1,16 +1,23 @@
 {
-  "_comment": "Committed template — copy to config.json for local staging. Live config.json and publish-state.json are gitignored.",
+  "_comment": "Committed template — copy to config.json per host. Live config.json and publish-state.json are gitignored. trajectory.json is committed (copy from trajectory.example.json).",
   "_fieldDocs": {
-    "siteUrl": "Public URL of this MonMS instance, no trailing slash. Shown in the serve startup banner (Site, Admin, Publish links). Example: https://staging.example.com",
-    "productionUrl": "HTTPS origin of the live production site, no trailing slash. Used by Publish to live and by monms content publish when --to is omitted — not the running instance URL.",
-    "publisherEmails": "PocketBase superuser emails allowed to open /_monms/publish. Create users at /_/ first, then list their emails here.",
-    "allowedHosts": "Hostnames passed to monms serve as --origins when the CLI flag is omitted. CLI --origins always wins. Example: staging.example.com",
-    "bind": "Listen address for monms serve as --http when the CLI flag is omitted. CLI --http always wins. Example: { \"host\": \"0.0.0.0\", \"port\": \"8090\" }",
-    "logging": "Optional. File log levels under .monms/logs/. Omit to use build-mode defaults (production binary: error, warn, schema; development binary: all levels). ERROR is always written. Values: error, warn, info, debug, schema.",
-    "loggingRotation": "Optional lumberjack rotation for log files. Example: { \"maxSizeMB\": 10, \"maxBackups\": 5, \"maxAgeDays\": 30, \"compress\": true }",
-    "devLogging": "Not stored in config.json. Verbose PocketBase console/SQL logs: run monms serve --dev (CLI flag only).",
-    "mcp": "Optional MCP HTTP listener for agentic access. Keys in monms_api_keys; restart monms after bind changes. Example: { \"enabled\": false, \"host\": \"127.0.0.1\", \"port\": \"8091\", \"allowNonSuperuserKeys\": false }",
-    "cache": "Optional response caches (off by default). template.enabled caches parsed .gohtml; html.enabled caches rendered GET pages to disk and optional memory LRU. html.memoryCompress: opt-in zstd for RAM tier only. html.excludePathRegex: POSIX ERE patterns matched against URL.Path. Example: { \"template\": { \"enabled\": false }, \"html\": { \"enabled\": false, \"memoryMaxMB\": 64, \"memoryCompress\": false, \"excludePathRegex\": [\"^/preview(/|$)\"], \"dbContent\": { \"policy\": \"flushAll\" }, \"doctreeContent\": { \"policy\": \"flushBySlug\" } } }"
+    "instance": "This host identity within trajectory.json. id must match a hosts[].id at instance.stageIndex; role is one of development, test, staging, production.",
+    "trajectory": "Committed at .monms/trajectory.json (copy from trajectory.example.json). Same map on every host.",
+    "siteUrl": "Public URL of this MonMS instance, no trailing slash. Must match trajectory hosts[].siteUrl for this instance.id.",
+    "productionUrl": "HTTPS origin for Publish to live (content rail). Should match the production stage host siteUrl when this instance publishes content upstream.",
+    "publisherEmails": "PocketBase user emails allowed to open /_monms/publish. Create users at /_/ first, then list their emails here.",
+    "allowedHosts": "Hostnames passed to monms serve as --origins when the CLI flag is omitted. CLI --origins always wins.",
+    "bind": "Listen address for monms serve as --http when the CLI flag is omitted. CLI --http always wins.",
+    "logging": "Optional file log levels under .monms/logs/. Values: error, warn, info, debug, schema.",
+    "loggingRotation": "Optional lumberjack rotation. Example: { \"maxSizeMB\": 10, \"maxBackups\": 5, \"maxAgeDays\": 30, \"compress\": true }",
+    "shapeSync": "Crash-recovery: git fetch --tags and checkout ref at serve startup. Authoritative promote is tag push → GitHub Actions → POST /api/monms/shape/deploy. Pin ref to last deployed tag.",
+    "mcp": "Optional MCP HTTP listener. Example: { \"enabled\": false, \"host\": \"127.0.0.1\", \"port\": \"8091\", \"allowNonSuperuserKeys\": false }",
+    "cache": "Optional response caches (off by default)."
+  },
+  "instance": {
+    "id": "staging-primary",
+    "role": "staging",
+    "stageIndex": 1
   },
   "cache": {
     "template": { "enabled": false },
@@ -29,5 +36,12 @@
   "publisherEmails": ["publisher@client.com"],
   "bind": { "host": "0.0.0.0", "port": "8090" },
   "allowedHosts": ["staging.example.com"],
+  "shapeSync": {
+    "enabled": true,
+    "ref": "v0.1.0",
+    "remote": "origin",
+    "force": false,
+    "failOnError": false
+  },
   "logging": ["error", "warn", "schema"]
 }
