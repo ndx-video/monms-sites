@@ -14,7 +14,7 @@ MonMS engine: [https://github.com/ndx-video/monms](https://github.com/ndx-video/
    export MONMS_BIN="$(pwd)/monms"
    ```
 
-3. Read [RULES.md](RULES.md) — especially R2 (text-only Git), R4 (`site.yaml`), R10 (gallery publish).
+3. Read [RULES.md](RULES.md) — especially R2 (text-only Git), R4 (`site.yaml`), R10 (gallery publish), R11 (`DESIGN.md`).
 
 ## Gallery assets
 
@@ -51,6 +51,7 @@ Remote URL shape: `{B2_PUBLIC_BASE_URL}/{category}/{slug}/{filename}`
 
    ```
    site.yaml
+   DESIGN.md
    templates/layouts/base.gohtml
    templates/index.gohtml
    schema/
@@ -59,20 +60,39 @@ Remote URL shape: `{B2_PUBLIC_BASE_URL}/{category}/{slug}/{filename}`
 
 3. Scaffold from `sites/_base/_default/` or `monms init` output.
 
-4. Add gallery assets (workflow above).
+4. Write `DESIGN.md` describing this template's visual system (R11). Use the [DESIGN.md format](https://github.com/google-labs-code/design.md) — see `sites/_base/_default/DESIGN.md` for an example. Align tokens with `assets/main.css` and template classes.
 
-5. Validate:
+5. Add gallery assets (workflow above).
+
+6. Validate:
 
    ```bash
    monms validate -s sites/<category>/<slug>
    ```
 
-6. Open a PR — one template per PR when possible.
+7. Open a PR — one template per PR when possible.
+
+### DESIGN.md lint (advisory)
+
+Templates with `DESIGN.md` can be checked against the upstream spec:
+
+```bash
+npx @google/design.md lint sites/<category>/<slug>/DESIGN.md
+```
+
+Or lint every template in the repo:
+
+```bash
+./scripts/lint_design_md.sh
+```
+
+Lint is **advisory** — it does not block validation or merge.
 
 ## PR checklist
 
 - [ ] Path is `sites/<category>/<slug>/`
 - [ ] `site.yaml`: `slug`/`category` match directories; `preview.thumbUrl` is HTTPS
+- [ ] `DESIGN.md` present and describes this template's visual system (R11)
 - [ ] No `preview.imageUrl` (legacy)
 - [ ] No committed binary files (`thumb.*`, `screenNN.*`, images, fonts)
 - [ ] Publish script run if gallery assets changed

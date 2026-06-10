@@ -4,7 +4,7 @@ name: MonMS Default
 description: Canonical bare scaffold matching monms init — base layout, homepage hero
   with HTMX inline edit, hero_content schema, homepage seed record, and operator config
   example.
-version: v0.1.1
+version: v0.1.2
 monms:
   minVersion: null
 preview:
